@@ -72,6 +72,7 @@ const EDGE_POSITION_STYLE: Record<'top' | 'bottom' | 'left' | 'right', React.CSS
 // タッチ操作を最優先: 見た目のつまみは小さくても、当たり判定は44px前後を確保する
 const HANDLE_HIT_SIZE = 44;
 
+
 const CornerHandle: React.FC<{
   position: 'nw' | 'ne' | 'sw' | 'se';
   onPointerDown: (e: React.PointerEvent) => void;
@@ -212,8 +213,15 @@ export const RoiAdjustPanel: React.FC<RoiAdjustPanelProps> = ({
 
   const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
+  // 縦横比を保ったままコンテナごと縮めるための横幅上限。
+  // --roi-max-h はモバイルのみ有効で、sm 以上では事実上無制限にする。
+  const maxWidthStyle =
+    naturalWidth > 0 && naturalHeight > 0
+      ? `calc(var(--roi-max-h) * ${naturalWidth} / ${naturalHeight})`
+      : undefined;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       <div className="space-y-1">
         <div className="text-[11px] font-mono tracking-wider text-blue-600 font-bold uppercase">
           解析範囲の調整
@@ -224,10 +232,30 @@ export const RoiAdjustPanel: React.FC<RoiAdjustPanelProps> = ({
         <p className="text-xs text-zinc-500">頭から足先まで入れてください。</p>
       </div>
 
+      {/*
+        スマホでの高さ制限（--roi-max-h: 52svh、sm 以上では実質無制限）。
+
+        高さを直接 max-height で切ると、コンテナのアスペクト比が画像と食い違い、
+        object-contain によるレターボックスが生じて「コンテナ矩形 = 画像矩形」
+        という前提（ROIの % 配置と getBoundingClientRect による逆算）が崩れる。
+        そのため高さではなく max-width に換算して掛ける:
+          max-width = 52svh * (naturalWidth / naturalHeight)
+        これでアスペクト比を保ったままコンテナごと縮み、コンテナ矩形と画像矩形が
+        一致した状態を維持できるため、座標計算には一切影響しない。
+        横動画は 52svh * 16/9 が画面幅を超えるので従来どおり横幅いっぱいになる。
+
+        touch-action はコンテナ全体では無効にしない。
+        画像の余白部分や説明文からは通常どおりページを縦スクロールできるようにし、
+        ROI矩形本体と各ハンドルの側にだけ touch-none を残す（ドラッグ中に
+        ページが動かない現在の挙動はそちらで維持される）。
+      */}
       <div
         ref={containerRef}
-        className="relative w-full bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-200/90 select-none touch-none"
-        style={{ aspectRatio: `${naturalWidth} / ${naturalHeight}` }}
+        className="relative w-full mx-auto bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-200/90 select-none [--roi-max-h:52svh] sm:[--roi-max-h:1000vh]"
+        style={{
+          aspectRatio: `${naturalWidth} / ${naturalHeight}`,
+          maxWidth: maxWidthStyle,
+        }}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
