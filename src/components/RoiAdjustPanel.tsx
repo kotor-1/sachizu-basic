@@ -214,14 +214,24 @@ export const RoiAdjustPanel: React.FC<RoiAdjustPanelProps> = ({
   const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
   // 縦横比を保ったままコンテナごと縮めるための横幅上限。
-  // --roi-max-h はモバイルのみ有効で、sm 以上では事実上無制限にする。
+  // 3つの上限の最小値をとる:
+  //   1. 高さ上限 (--roi-max-h) をアスペクト比で横幅へ換算したもの
+  //   2. 横幅上限 (--roi-max-w)
+  //   3. 左右のスクロール用余白 (--roi-side-gap) を差し引いた幅
+  // いずれもモバイル専用で、sm 以上では事実上無制限になる。
   const maxWidthStyle =
     naturalWidth > 0 && naturalHeight > 0
-      ? `calc(var(--roi-max-h) * ${naturalWidth} / ${naturalHeight})`
+      ? [
+          `min(calc(var(--roi-max-h) * ${naturalWidth} / ${naturalHeight})`,
+          'var(--roi-max-w)',
+          'calc(100% - var(--roi-side-gap)))',
+        ].join(', ')
       : undefined;
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    // 外側は縦スクロールを許可する。ROI矩形とハンドルだけが touch-action: none
+    // を持つため、「枠を掴む=ROI操作 / それ以外=ページスクロール」が分かれる。
+    <div className="space-y-3 sm:space-y-4 touch-pan-y">
       <div className="space-y-1">
         <div className="text-[11px] font-mono tracking-wider text-blue-600 font-bold uppercase">
           解析範囲の調整
@@ -233,25 +243,25 @@ export const RoiAdjustPanel: React.FC<RoiAdjustPanelProps> = ({
       </div>
 
       {/*
-        スマホでの高さ制限（--roi-max-h: 52svh、sm 以上では実質無制限）。
+        スマホ(640px未満)での表示上限。高さ 40svh / 横幅 72vw / 左右余白 24px ずつ。
 
         高さを直接 max-height で切ると、コンテナのアスペクト比が画像と食い違い、
         object-contain によるレターボックスが生じて「コンテナ矩形 = 画像矩形」
         という前提（ROIの % 配置と getBoundingClientRect による逆算）が崩れる。
-        そのため高さではなく max-width に換算して掛ける:
-          max-width = 52svh * (naturalWidth / naturalHeight)
+        そのため高さ制限も max-width に換算して掛ける:
+          max-width = 40svh * (naturalWidth / naturalHeight)
         これでアスペクト比を保ったままコンテナごと縮み、コンテナ矩形と画像矩形が
         一致した状態を維持できるため、座標計算には一切影響しない。
-        横動画は 52svh * 16/9 が画面幅を超えるので従来どおり横幅いっぱいになる。
+        縦動画は高さ 40svh 側が、横動画は横幅 72vw 側が効く。
 
-        touch-action はコンテナ全体では無効にしない。
-        画像の余白部分や説明文からは通常どおりページを縦スクロールできるようにし、
-        ROI矩形本体と各ハンドルの側にだけ touch-none を残す（ドラッグ中に
-        ページが動かない現在の挙動はそちらで維持される）。
+        touch-action はコンテナでは pan-y にして、画像の余白や左右の空きから
+        ページを縦スクロールできるようにする。ROI矩形本体と各ハンドルだけが
+        touch-none を持ち、touch-action は祖先との積で決まるため、
+        枠やハンドルを掴んでいる間はページが動かない挙動が維持される。
       */}
       <div
         ref={containerRef}
-        className="relative w-full mx-auto bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-200/90 select-none [--roi-max-h:52svh] sm:[--roi-max-h:1000vh]"
+        className="relative w-full mx-auto bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-200/90 select-none touch-pan-y [--roi-max-h:40svh] [--roi-max-w:72vw] [--roi-side-gap:48px] sm:[--roi-max-h:1000vh] sm:[--roi-max-w:100vw] sm:[--roi-side-gap:0px]"
         style={{
           aspectRatio: `${naturalWidth} / ${naturalHeight}`,
           maxWidth: maxWidthStyle,
