@@ -5,12 +5,15 @@ interface HeaderProps {
   title?: string;
   onBack?: () => void;
   showBack?: boolean;
+  /** 右上の小さなラベル（測定画面以外では文脈に合わせて差し替える） */
+  rightLabel?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'JUMP & SPRINT',
   onBack,
   showBack = false,
+  rightLabel = 'MEASUREMENT',
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 h-12 flex items-center">
@@ -19,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
           {showBack && onBack ? (
             <button
               onClick={onBack}
-              className="p-1.5 -ml-1.5 text-zinc-600 hover:text-zinc-950 rounded-md hover:bg-zinc-100 transition-colors"
+              className="w-11 h-11 -ml-3.5 -mr-2 flex items-center justify-center text-zinc-600 hover:text-zinc-950 rounded-md hover:bg-zinc-100 transition-colors"
               aria-label="戻る"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -32,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 右側は装飾を廃止し、不要なバッジを完全撤廃 */}
         <div className="text-[10px] font-mono tracking-wider text-zinc-400">
-          MEASUREMENT
+          {rightLabel}
         </div>
       </div>
     </header>

@@ -1,5 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
+import { PAGE_PATHS } from '../router';
+import { AppLink } from './pageUI';
 
 interface HomeScreenProps {
   onSelectCMJ: () => void;
@@ -131,6 +133,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <ChevronRight className="w-4 h-4" />
           </div>
         </button>
+      </div>
+
+      {/* 測定メニューより控えめな相談導線 */}
+      <div className="pt-4 border-t border-zinc-100 space-y-1">
+        <div className="text-[11px] font-mono tracking-wider text-zinc-400 uppercase px-0.5">
+          SUPPORT
+        </div>
+        <div className="flex flex-col">
+          <AppLink
+            to={PAGE_PATHS.consultation}
+            className="min-h-[44px] flex items-center justify-between text-xs text-zinc-600 hover:text-zinc-950 transition-colors"
+          >
+            <span>無料相談</span>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-300" />
+          </AppLink>
+          <AppLink
+            to={PAGE_PATHS['online-personal']}
+            className="min-h-[44px] flex items-center justify-between text-xs text-zinc-600 hover:text-zinc-950 transition-colors border-t border-zinc-100"
+          >
+            <span>オンラインパーソナル</span>
+            <ChevronRight className="w-3.5 h-3.5 text-zinc-300" />
+          </AppLink>
+        </div>
       </div>
 
       {/* 端末内処理の控えめな注記 */}
