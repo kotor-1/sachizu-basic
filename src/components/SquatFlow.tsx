@@ -28,6 +28,7 @@ import {
   Sparkles,
   ArrowLeft,
 } from 'lucide-react';
+import { isAcceptableVideoFile } from '../utils/videoSource';
 
 type SquatDirection = 'side' | 'front';
 type SquatPhase = 'direction' | 'upload' | 'select_frame' | 'result' | 'roi_adjust';
@@ -166,6 +167,7 @@ export const SquatFlow: React.FC = () => {
   const [direction, setDirection] = useState<SquatDirection>('side');
   const [phase, setPhase] = useState<SquatPhase>('direction');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [fps, setFps] = useState<number>(DEFAULT_SQUAT_FPS);
   const [currentFrame, setCurrentFrame] = useState<number>(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -196,14 +198,16 @@ export const SquatFlow: React.FC = () => {
   // 2. 動画選択
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
+    if (!isAcceptableVideoFile(file)) {
       setErrorMessage('動画ファイルを選択してください。');
       return;
     }
 
     const url = URL.createObjectURL(file);
     setVideoSrc(url);
+    setVideoFile(file);
     setCurrentFrame(0);
     setDetectedKeypoints(null);
     setAnnotatedImageUrl(null);
@@ -335,6 +339,7 @@ export const SquatFlow: React.FC = () => {
       URL.revokeObjectURL(videoSrc);
     }
     setVideoSrc(null);
+    setVideoFile(null);
     setCurrentFrame(0);
     setDetectedKeypoints(null);
     setAnnotatedImageUrl(null);
@@ -515,6 +520,7 @@ export const SquatFlow: React.FC = () => {
 
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}

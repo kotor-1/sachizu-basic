@@ -1,5 +1,11 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
+import {
+  describeFile,
+  isVideoDebugEnabled,
+  normalizeDuration,
+  supportsFileSrcObject,
+} from '../utils/videoSource';
 
 export interface VideoMarker {
   frame: number;
@@ -9,6 +15,12 @@ export interface VideoMarker {
 
 interface VideoPlayerProps {
   videoSrc: string;
+  /**
+   * 選択された元 File。渡されている場合、WebKit (iOS Safari) では
+   * blob URL ではなく srcObject へ直接接続する。
+   * 未指定なら従来どおり videoSrc (blob URL) を使う。
+   */
+  videoFile?: File | null;
   fps: number;
   currentFrame: number;
   onFrameChange: (frame: number) => void;
@@ -19,6 +31,7 @@ interface VideoPlayerProps {
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoSrc,
+  videoFile = null,
   fps,
   currentFrame,
   onFrameChange,
@@ -33,6 +46,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [totalFrames, setTotalFrames] = useState(0);
+
+  // 動画診断（?debug=video のときだけ有効。本番の通常表示には出さない）
+  const [debugEnabled] = useState(isVideoDebugEnabled);
+  const [debugLines, setDebugLines] = useState<string[]>([]);
+  const [sourceMode, setSourceMode] = useState<'srcObject' | 'blob-url' | '-'>('-');
 
   // ピンチズーム・パン用ステート（1.0x〜4.0x）
   const [scale, setScale] = useState(1);
@@ -71,14 +89,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, []);
 
-  // 動画メタデータ読み込み
-  const handleLoadedMetadata = () => {
+  /**
+   * メタデータ確定時の処理。
+   * duration / videoWidth / videoHeight が取れた時点で操作可能にする
+   * （loadeddata / canplay は待たない）。
+   * iOS Safari では duration が Infinity や NaN で来ることがあるため正規化し、
+   * 後から durationchange で確定したときに再計算する。
+   */
+  const handleMetadataAvailable = useCallback(() => {
     if (!videoRef.current) return;
-    const dur = videoRef.current.duration;
+    const dur = normalizeDuration(videoRef.current.duration);
     setDuration(dur);
-    const tot = Math.max(1, Math.floor(dur * fps));
-    setTotalFrames(tot);
-  };
+    setTotalFrames(dur > 0 ? Math.max(1, Math.floor(dur * fps)) : 0);
+  }, [fps]);
 
   // フレームシーク（フレーム中央を指定して境界ブレを防止）
   const seekToFrame = useCallback(
@@ -157,6 +180,87 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
   }, [currentFrame, fps, isPlaying, duration]);
+
+  /**
+   * メディアソースの接続。
+   *
+   * iOS Safari (WebKit) は srcObject へ File を直接代入できるため、そちらを優先する。
+   * 受け付けないブラウザ (Chromium 系は TypeError) では blob URL へフォールバックする。
+   * blob URL の生成・破棄は呼び出し元の Flow が担当し、ここでは revoke しない
+   * （src 設定直後に破棄してしまう事故を防ぐため）。
+   * 明示的な load() は呼ばない（iOS で loadeddata が来なくなる既知問題を避ける）。
+   */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let mode: 'srcObject' | 'blob-url' = 'blob-url';
+
+    if (videoFile && supportsFileSrcObject()) {
+      try {
+        video.removeAttribute('src');
+        video.srcObject = videoFile as unknown as MediaProvider;
+        mode = 'srcObject';
+      } catch {
+        video.srcObject = null;
+        video.src = videoSrc;
+      }
+    } else {
+      video.srcObject = null;
+      video.src = videoSrc;
+    }
+
+    setSourceMode(mode);
+
+    return () => {
+      // 動画切り替え時・unmount 時のみ srcObject を外す
+      try {
+        video.srcObject = null;
+      } catch {
+        /* 解放できない環境では何もしない */
+      }
+    };
+  }, [videoFile, videoSrc]);
+
+  // 動画診断ログ（?debug=video のときのみ購読する）
+  useEffect(() => {
+    if (!debugEnabled) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const names = [
+      'loadstart',
+      'loadedmetadata',
+      'loadeddata',
+      'canplay',
+      'canplaythrough',
+      'durationchange',
+      'suspend',
+      'stalled',
+      'waiting',
+      'seeked',
+      'error',
+    ];
+
+    const onEvent = (e: Event) => {
+      const err = video.error;
+      const line = [
+        e.type,
+        `rs=${video.readyState}`,
+        `ns=${video.networkState}`,
+        `t=${video.currentTime.toFixed(3)}`,
+        `dur=${video.duration}`,
+        `${video.videoWidth}x${video.videoHeight}`,
+        err ? `ERR=${err.code}:${err.message}` : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      setDebugLines((prev) => [...prev.slice(-49), line]);
+    };
+
+    names.forEach((n) => video.addEventListener(n, onEvent));
+    return () => names.forEach((n) => video.removeEventListener(n, onEvent));
+  }, [debugEnabled, videoSrc, videoFile]);
 
   // タッチ・ジェスチャー追跡用の参照
   const gestureRef = useRef<{
@@ -404,13 +508,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }}
           className="relative w-full h-full flex items-center justify-center pointer-events-auto"
         >
+          {/* src / srcObject は上の useEffect が命令的に接続する（JSX では指定しない） */}
           <video
             ref={videoRef}
-            src={videoSrc}
             playsInline
             muted
-            preload="auto"
-            onLoadedMetadata={handleLoadedMetadata}
+            preload="metadata"
+            onLoadedMetadata={handleMetadataAvailable}
+            onDurationChange={handleMetadataAvailable}
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleEnded}
             className="w-full h-full object-contain pointer-events-none"
@@ -451,6 +556,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         )}
       </div>
 
+
+      {/* 動画診断パネル（?debug=video のときだけ表示。実機のSafariでも読めるようDOMに出す） */}
+      {debugEnabled && (
+        <div className="bg-zinc-950 text-zinc-200 font-mono text-[10px] leading-snug p-2.5 space-y-1 border-t border-zinc-800">
+          <div className="text-emerald-400">VIDEO DEBUG</div>
+          <div className="break-all">{describeFile(videoFile)}</div>
+          <div>
+            source={sourceMode} / srcObjectSupport={String(supportsFileSrcObject())}
+          </div>
+          <div>
+            duration={duration} totalFrames={totalFrames} frame={currentFrame}
+          </div>
+          <div className="max-h-40 overflow-auto space-y-0.5 pt-1 border-t border-zinc-800">
+            {debugLines.length === 0 ? (
+              <div className="text-zinc-500">(イベント未発火)</div>
+            ) : (
+              debugLines.map((line, i) => (
+                <div key={i} className="break-all text-zinc-300">
+                  {line}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 2. コントロール＆作業面 */}
       <div className="p-3.5 space-y-3 bg-white">

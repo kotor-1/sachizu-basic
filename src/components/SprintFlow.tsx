@@ -5,12 +5,14 @@ import { SprintLineOverlay } from './SprintLineOverlay';
 import { SprintResultCard } from './SprintResultCard';
 import { calculateSprint, SprintResult, SprintContactInput } from '../utils/sprintCalculations';
 import { AlertCircle, RotateCcw, ArrowRight, Upload, Plus, Check } from 'lucide-react';
+import { isAcceptableVideoFile } from '../utils/videoSource';
 
 type SprintPhase = 'upload' | 'step1_start' | 'step2_end' | 'step3_contacts' | 'result';
 
 export const SprintFlow: React.FC = () => {
   const [phase, setPhase] = useState<SprintPhase>('upload');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [fps, setFps] = useState<number>(120);
   const [currentFrame, setCurrentFrame] = useState<number>(0);
 
@@ -34,13 +36,15 @@ export const SprintFlow: React.FC = () => {
   // 動画選択
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
+    if (!isAcceptableVideoFile(file)) {
       setErrorMessage('動画ファイルを選択してください。');
       return;
     }
     const url = URL.createObjectURL(file);
     setVideoSrc(url);
+    setVideoFile(file);
     setCurrentFrame(0);
     setStartFrame(null);
     setEndFrame(null);
@@ -144,6 +148,7 @@ export const SprintFlow: React.FC = () => {
       URL.revokeObjectURL(videoSrc);
     }
     setVideoSrc(null);
+    setVideoFile(null);
     setCurrentFrame(0);
     setStartFrame(null);
     setEndFrame(null);
@@ -246,6 +251,7 @@ export const SprintFlow: React.FC = () => {
 
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}
@@ -356,6 +362,7 @@ export const SprintFlow: React.FC = () => {
 
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}

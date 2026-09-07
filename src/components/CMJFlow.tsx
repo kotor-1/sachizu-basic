@@ -11,6 +11,7 @@ type CMJStep = 'upload' | 'select_takeoff' | 'select_landing' | 'result';
 export const CMJFlow: React.FC = () => {
   const [step, setStep] = useState<CMJStep>('upload');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [fps, setFps] = useState<number>(120);
   const [currentFrame, setCurrentFrame] = useState<number>(0);
   const [takeoffFrame, setTakeoffFrame] = useState<number | null>(null);
@@ -18,8 +19,9 @@ export const CMJFlow: React.FC = () => {
   const [result, setResult] = useState<CMJResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleVideoSelected = (_file: File, url: string) => {
+  const handleVideoSelected = (file: File, url: string) => {
     setVideoSrc(url);
+    setVideoFile(file);
     setCurrentFrame(0);
     setTakeoffFrame(null);
     setLandingFrame(null);
@@ -63,6 +65,7 @@ export const CMJFlow: React.FC = () => {
       URL.revokeObjectURL(videoSrc);
     }
     setVideoSrc(null);
+    setVideoFile(null);
     setCurrentFrame(0);
     setTakeoffFrame(null);
     setLandingFrame(null);
@@ -107,6 +110,7 @@ export const CMJFlow: React.FC = () => {
         <div className="space-y-4">
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}

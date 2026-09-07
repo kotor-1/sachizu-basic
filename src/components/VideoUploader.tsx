@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
+import { isAcceptableVideoFile } from '../utils/videoSource';
 
 interface VideoUploaderProps {
   type: 'cmj' | 'rj';
@@ -16,9 +17,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // 同じ動画をもう一度選んでも change が発火するようにしておく
+    e.target.value = '';
     if (!file) return;
 
-    if (!file.type.startsWith('video/')) {
+    // iPhone のフォトライブラリからは video/quicktime (.mov) が渡る。
+    // 端末によっては type が空で来るため拡張子でも判定する。
+    if (!isAcceptableVideoFile(file)) {
       onError('動画ファイルを選択してください。');
       return;
     }

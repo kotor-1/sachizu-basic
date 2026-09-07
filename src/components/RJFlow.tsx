@@ -79,6 +79,7 @@ const SEVEN_STEPS: StepDefinition[] = [
 export const RJFlow: React.FC = () => {
   const [flowPhase, setFlowPhase] = useState<FlowPhase>('upload');
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [fps, setFps] = useState<number>(120);
   const [currentFrame, setCurrentFrame] = useState<number>(0);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
@@ -98,8 +99,9 @@ export const RJFlow: React.FC = () => {
 
   const activeStep = SEVEN_STEPS[currentStepIndex];
 
-  const handleVideoSelected = (_file: File, url: string) => {
+  const handleVideoSelected = (file: File, url: string) => {
     setVideoSrc(url);
+    setVideoFile(file);
     setCurrentFrame(0);
     setCurrentStepIndex(0);
     setPoints({
@@ -183,6 +185,7 @@ export const RJFlow: React.FC = () => {
       URL.revokeObjectURL(videoSrc);
     }
     setVideoSrc(null);
+    setVideoFile(null);
     setCurrentFrame(0);
     setCurrentStepIndex(0);
     setPoints({
@@ -259,6 +262,7 @@ export const RJFlow: React.FC = () => {
 
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}
@@ -348,6 +352,7 @@ export const RJFlow: React.FC = () => {
 
           <VideoPlayer
             videoSrc={videoSrc}
+            videoFile={videoFile}
             fps={fps}
             currentFrame={currentFrame}
             onFrameChange={setCurrentFrame}
