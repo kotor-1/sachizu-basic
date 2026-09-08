@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { HomeScreen } from './components/HomeScreen';
 import { CMJFlow } from './components/CMJFlow';
@@ -7,13 +7,35 @@ import { SprintFlow } from './components/SprintFlow';
 import { SquatFlow } from './components/SquatFlow';
 import { ConsultationPage } from './components/ConsultationPage';
 import { OnlinePersonalPage } from './components/OnlinePersonalPage';
+import { HelpModal } from './components/HelpModal';
+import { TutorialModal } from './components/TutorialModal';
+import { TutorialScreenKey } from './content/helpContent';
+import { hasSeenTutorial, markTutorialSeen } from './utils/tutorialStorage';
 import { goBack, useRoute } from './router';
 
 type CurrentScreen = 'home' | 'cmj' | 'rj' | 'sprint' | 'squat';
 
+const isTutorialScreen = (screen: CurrentScreen): screen is TutorialScreenKey =>
+  screen !== 'home';
+
 export function App() {
   const [screen, setScreen] = useState<CurrentScreen>('home');
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [tutorialFor, setTutorialFor] = useState<TutorialScreenKey | null>(null);
   const route = useRoute();
+
+  // 各種目（CMJ/RJ/10m/SQUAT）を初めて開いた時だけ、簡易チュートリアルを自動表示する。
+  // 一度最後まで進める/スキップすると localStorage に記録し、以後は自動表示しない。
+  useEffect(() => {
+    if (!isTutorialScreen(screen)) return;
+    if (hasSeenTutorial(screen)) return;
+    setTutorialFor(screen);
+  }, [screen]);
+
+  const handleFinishTutorial = () => {
+    if (tutorialFor) markTutorialSeen(tutorialFor);
+    setTutorialFor(null);
+  };
 
   const isPage = route.kind === 'page';
 
@@ -49,6 +71,7 @@ export function App() {
         rightLabel={getRightLabel()}
         showBack={isPage || screen !== 'home'}
         onBack={isPage ? goBack : () => setScreen('home')}
+        onHelpClick={isPage ? undefined : () => setHelpOpen(true)}
       />
 
       <main className="flex-1 pb-8">
@@ -75,6 +98,29 @@ export function App() {
         {route.kind === 'page' && route.page === 'consultation' && <ConsultationPage />}
         {route.kind === 'page' && route.page === 'online-personal' && <OnlinePersonalPage />}
       </main>
+
+      {!isPage && (
+        <>
+          <HelpModal
+            open={helpOpen}
+            onClose={() => setHelpOpen(false)}
+            screenKey={screen}
+            onReplayTutorial={
+              isTutorialScreen(screen)
+                ? () => {
+                    setHelpOpen(false);
+                    setTutorialFor(screen);
+                  }
+                : undefined
+            }
+          />
+          <TutorialModal
+            open={tutorialFor !== null && tutorialFor === screen}
+            screenKey={tutorialFor ?? 'cmj'}
+            onFinish={handleFinishTutorial}
+          />
+        </>
+      )}
     </div>
   );
 }

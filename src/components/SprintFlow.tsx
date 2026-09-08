@@ -277,8 +277,8 @@ export const SprintFlow: React.FC = () => {
                   </p>
                   <p className="text-[11px] text-zinc-500">
                     {phase === 'step1_start'
-                      ? '選手の胸が0mラインを越えた最初のフレーム'
-                      : '選手の胸が10mラインを越えた最初のフレーム'}
+                      ? '0mラインを胸が通過した最初のフレームを選んでください'
+                      : '10mラインを胸が通過した最初のフレームを選んでください'}
                   </p>
                 </div>
                 <div className="text-right">

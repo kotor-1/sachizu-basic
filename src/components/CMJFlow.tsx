@@ -125,7 +125,9 @@ export const CMJFlow: React.FC = () => {
                     {step === 'select_takeoff' ? 'STEP 1 / 2' : 'STEP 2 / 2'}
                   </span>
                   <p className="text-sm font-black text-zinc-950">
-                    {step === 'select_takeoff' ? '離地の瞬間' : '着地の瞬間'}
+                    {step === 'select_takeoff'
+                      ? '① 離地する最初のフレームを選んでください'
+                      : '② 着地する最初のフレームを選んでください'}
                   </p>
                 </div>
                 <div className="text-right">

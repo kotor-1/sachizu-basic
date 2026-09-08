@@ -11,9 +11,9 @@ type FlowPhase = 'upload' | 'wizard' | 'completed_selection' | 'result';
 interface StepDefinition {
   key: keyof RJ7Points;
   stepNumber: number; // 1 to 7
-  targetName: string;
   badge: string;
-  description: string;
+  /** 操作エリア上部に出す「いま何をするか」の指示文 */
+  guidance: string;
   markerLabel: string;
 }
 
@@ -21,57 +21,50 @@ const SEVEN_STEPS: StepDefinition[] = [
   {
     key: 'landing1',
     stepNumber: 1,
-    targetName: '1回目の着地',
     badge: '1回目',
-    description: '1回目の接地開始（足が地面に着いた瞬間）',
+    guidance: '最後の3回のうち、1回目の着地を選んでください',
     markerLabel: '1着',
   },
   {
     key: 'takeoff1',
     stepNumber: 2,
-    targetName: '1回目の離地',
     badge: '1回目',
-    description: '1回目の跳躍（足が地面から離れた瞬間）',
+    guidance: '1回目の離地を選んでください',
     markerLabel: '1離',
   },
   {
     key: 'landing2',
     stepNumber: 3,
-    targetName: '2回目の着地',
     badge: '2回目',
-    description: '2回目の接地開始（地面に着いた瞬間）',
+    guidance: '2回目の着地を選んでください',
     markerLabel: '2着',
   },
   {
     key: 'takeoff2',
     stepNumber: 4,
-    targetName: '2回目の離地',
     badge: '2回目',
-    description: '2回目の跳躍（足が地面から離れた瞬間）',
+    guidance: '2回目の離地を選んでください',
     markerLabel: '2離',
   },
   {
     key: 'landing3',
     stepNumber: 5,
-    targetName: '3回目の着地',
     badge: '3回目',
-    description: '3回目の接地開始（地面に着いた瞬間）',
+    guidance: '3回目の着地を選んでください',
     markerLabel: '3着',
   },
   {
     key: 'takeoff3',
     stepNumber: 6,
-    targetName: '3回目の離地',
     badge: '3回目',
-    description: '3回目の跳躍（足が地面から離れた瞬間）',
+    guidance: '3回目の離地を選んでください',
     markerLabel: '3離',
   },
   {
     key: 'landing4',
     stepNumber: 7,
-    targetName: '最後の着地',
     badge: '終了',
-    description: '3回目の滞空終了（地面に着地した瞬間）',
+    guidance: '最後の着地を選んでください',
     markerLabel: '終着',
   },
 ];
@@ -282,7 +275,7 @@ export const RJFlow: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-sm font-black text-zinc-950">
-                    {activeStep.targetName}
+                    {activeStep.guidance}
                   </p>
                 </div>
                 <div className="text-right">

@@ -511,7 +511,7 @@ export const SquatFlow: React.FC = () => {
               STEP 2 / 最下点を選ぶ
             </div>
             <h2 className="text-base font-black text-zinc-950">
-              一番深い位置を選んでください
+              スクワットが最も深いフレームを選んでください
             </h2>
             <p className="text-xs text-zinc-500">
               しゃがみが最も深くなったフレームをコマ送りで合わせます。

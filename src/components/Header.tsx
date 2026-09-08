@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { HelpButton } from './HelpButton';
 
 interface HeaderProps {
   title?: string;
@@ -7,6 +8,8 @@ interface HeaderProps {
   showBack?: boolean;
   /** 右上の小さなラベル（測定画面以外では文脈に合わせて差し替える） */
   rightLabel?: string;
+  /** 指定した画面のみ「？」ヘルプボタンを表示する（相談ページ等では渡さない） */
+  onHelpClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBack,
   showBack = false,
   rightLabel = 'MEASUREMENT',
+  onHelpClick,
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 px-4 h-12 flex items-center">
@@ -33,9 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         </div>
 
-        {/* 右側は装飾を廃止し、不要なバッジを完全撤廃 */}
-        <div className="text-[10px] font-mono tracking-wider text-zinc-400">
-          {rightLabel}
+        <div className="flex items-center space-x-0.5">
+          {onHelpClick && <HelpButton onClick={onHelpClick} />}
+          {/* 右側は装飾を廃止し、不要なバッジを完全撤廃 */}
+          <div className="text-[10px] font-mono tracking-wider text-zinc-400">
+            {rightLabel}
+          </div>
         </div>
       </div>
     </header>
